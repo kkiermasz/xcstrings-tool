@@ -32,15 +32,15 @@ public struct StringGenerator {
     }
 
     func generate() -> SourceFileSyntax {
-        SourceFileSyntax {
-            generateImports()
-            generateStringExtension()
-            generateStringsTableExtension()
-            generateBundleDescriptionExtension()
-            generateBundleExtension()
-            generateFoundationBundleDescriptionExtension()
-            generateLocalizedStringResourceExtension()
-        }
+        SourceFileSyntax(
+            statementsBuilder: {
+                generateImports()
+                generateStringsTableExtension()
+                generateBundleDescriptionExtension()
+                generateResolveExtension()
+            },
+            trailingTrivia: .newline
+        )
         .spacingStatements()
     }
 
@@ -54,282 +54,33 @@ public struct StringGenerator {
         )
     }
 
-    func generateStringExtension() -> ExtensionDeclSyntax {
-        ExtensionDeclSyntax(
-            availability: .wwdc2021,
-            extendedType: .identifier(.String)
-        ) {
-            // Table struct
-            StructDeclSyntax(
-                leadingTrivia: customTypeDocumentation,
-                modifiers: [
-                    DeclModifierSyntax(name: accessLevel.token)
-                ],
-                name: structToken
-            ) {
-                // BundleDescription
-                EnumDeclSyntax(
-                    modifiers: [
-                        DeclModifierSyntax(name: .keyword(.fileprivate))
-                    ],
-                    name: .type(.BundleDescription),
-                    memberBlockBuilder: {
-                        EnumCaseDeclSyntax {
-                            EnumCaseElementSyntax(name: .identifier("main"))
-                        }
-                        EnumCaseDeclSyntax {
-                            EnumCaseElementSyntax(
-                                name: .identifier("atURL"),
-                                parameterClause: EnumCaseParameterClauseSyntax(
-                                    parameters: [
-                                        "URL"
-                                    ]
-                                )
-                            )
-                        }
-                        EnumCaseDeclSyntax {
-                            EnumCaseElementSyntax(
-                                name: .identifier("forClass"),
-                                parameterClause: EnumCaseParameterClauseSyntax(
-                                    parameters: [
-                                        "AnyClass"
-                                    ]
-                                )
-                            )
-                        }
-                    },
-                    trailingTrivia: .newlines(2)
+    func generateStringsTableExtension() -> EnumDeclSyntax {
+        EnumDeclSyntax(
+            attributes: [
+                .attribute(
+                    AttributeSyntax(availability: .wwdc2022)
+                        .with(\.trailingTrivia, .newline)
                 )
-
-                // Properties
-                VariableDeclSyntax(
-                    modifiers: [
-                        DeclModifierSyntax(name: .keyword(.fileprivate)),
-                    ],
-                    .let,
-                    name: PatternSyntax(IdentifierPatternSyntax(identifier: "key")),
-                    type: TypeAnnotationSyntax(
-                        type: .identifier(.StaticString)
-                    )
-                )
-                VariableDeclSyntax(
-                    modifiers: [
-                        DeclModifierSyntax(name: .keyword(.fileprivate)),
-                    ],
-                    .let,
-                    name: PatternSyntax(IdentifierPatternSyntax(identifier: "defaultValue")),
-                    type: TypeAnnotationSyntax(type: .identifier(.LocalizationValue))
-                )
-                VariableDeclSyntax(
-                    modifiers: [
-                        DeclModifierSyntax(name: .keyword(.fileprivate)),
-                    ],
-                    .let,
-                    name: PatternSyntax(IdentifierPatternSyntax(identifier: "table")),
-                    type: TypeAnnotationSyntax(
-                        type: OptionalTypeSyntax(wrappedType: .identifier(.String))
-                    )
-                )
-                VariableDeclSyntax(
-                    modifiers: [
-                        DeclModifierSyntax(name: .keyword(.fileprivate)),
-                    ],
-                    .let,
-                    name: PatternSyntax(IdentifierPatternSyntax(identifier: "locale")),
-                    type: TypeAnnotationSyntax(type: .identifier(.Locale))
-                )
-                VariableDeclSyntax(
-                    modifiers: [
-                        DeclModifierSyntax(name: .keyword(.fileprivate)),
-                    ],
-                    .let,
-                    name: PatternSyntax(IdentifierPatternSyntax(identifier: "bundle")),
-                    type: TypeAnnotationSyntax(type: .identifier(.BundleDescription))
-                ).with(\.trailingTrivia, .newlines(2))
-
-                // Init
-                InitializerDeclSyntax(
-                    modifiers: [
-                        DeclModifierSyntax(name: .keyword(.fileprivate)),
-                    ],
-                    signature: FunctionSignatureSyntax(
-                        parameterClause: FunctionParameterClauseSyntax {
-                            FunctionParameterSyntax(
-                                firstName: "key",
-                                type: .identifier(.StaticString)
-                            )
-                            FunctionParameterSyntax(
-                                firstName: "defaultValue",
-                                type: .identifier(.LocalizationValue)
-                            )
-                            FunctionParameterSyntax(
-                                firstName: "table",
-                                type: OptionalTypeSyntax(wrappedType: .identifier(.String))
-                            )
-                            FunctionParameterSyntax(
-                                firstName: "locale",
-                                type: .identifier(.Locale)
-                            )
-                            FunctionParameterSyntax(
-                                firstName: "bundle",
-                                type: .identifier(.BundleDescription)
-                            )
-                        }
-                    )
-                    .multiline()
-                ) {
-                    InfixOperatorExprSyntax(
-                        leftOperand: MemberAccessExprSyntax(
-                            base: DeclReferenceExprSyntax(baseName: .keyword(.`self`)),
-                            name: "key"
-                        ),
-                        operator: AssignmentExprSyntax(),
-                        rightOperand: DeclReferenceExprSyntax(baseName: "key")
-                    )
-                    InfixOperatorExprSyntax(
-                        leftOperand: MemberAccessExprSyntax(
-                            base: DeclReferenceExprSyntax(baseName: .keyword(.`self`)),
-                            name: "defaultValue"
-                        ),
-                        operator: AssignmentExprSyntax(),
-                        rightOperand: DeclReferenceExprSyntax(baseName: "defaultValue")
-                    )
-                    InfixOperatorExprSyntax(
-                        leftOperand: MemberAccessExprSyntax(
-                            base: DeclReferenceExprSyntax(baseName: .keyword(.`self`)),
-                            name: "table"
-                        ),
-                        operator: AssignmentExprSyntax(),
-                        rightOperand: DeclReferenceExprSyntax(baseName: "table")
-                    )
-                    InfixOperatorExprSyntax(
-                        leftOperand: MemberAccessExprSyntax(
-                            base: DeclReferenceExprSyntax(baseName: .keyword(.`self`)),
-                            name: "locale"
-                        ),
-                        operator: AssignmentExprSyntax(),
-                        rightOperand: DeclReferenceExprSyntax(baseName: "locale")
-                    )
-                    InfixOperatorExprSyntax(
-                        leftOperand: MemberAccessExprSyntax(
-                            base: DeclReferenceExprSyntax(baseName: .keyword(.`self`)),
-                            name: "bundle"
-                        ),
-                        operator: AssignmentExprSyntax(),
-                        rightOperand: DeclReferenceExprSyntax(baseName: "bundle")
-                    )
-                }
-            }
-
-            // String initialiser
-            InitializerDeclSyntax(
-                modifiers: [
-                    DeclModifierSyntax(name: accessLevel.token),
-                ],
-                signature: FunctionSignatureSyntax(
-                    parameterClause: FunctionParameterClauseSyntax {
-                        FunctionParameterSyntax(
-                            firstName: variableToken,
-                            type: IdentifierTypeSyntax(name: structToken)
-                        )
-                        FunctionParameterSyntax(
-                            firstName: "locale",
-                            type: OptionalTypeSyntax(wrappedType: .identifier(.Locale)),
-                            defaultValue: InitializerClauseSyntax(value: NilLiteralExprSyntax())
-                        )
-                    }
-                )
-            ) {
-                FunctionCallExprSyntax(
-                    callee: MemberAccessExprSyntax(
-                        base: DeclReferenceExprSyntax(baseName: .keyword(.`self`)),
-                        name: .keyword(.`init`)
-                    )
-                ) {
-                    // localized: localizable.key
-                    LabeledExprSyntax(
-                        label: "localized",
-                        expression: MemberAccessExprSyntax(
-                            base: DeclReferenceExprSyntax(baseName: variableToken),
-                            name: "key"
-                        )
-                    )
-                    // defaultValue: localizable.defaultValue
-                    LabeledExprSyntax(
-                        label: "defaultValue",
-                        expression: MemberAccessExprSyntax(
-                            base: DeclReferenceExprSyntax(baseName: variableToken),
-                            name: "defaultValue"
-                        )
-                    )
-                    // table: localizable.table
-                    LabeledExprSyntax(
-                        label: "table",
-                        expression: MemberAccessExprSyntax(
-                            base: DeclReferenceExprSyntax(baseName: variableToken),
-                            name: "table"
-                        )
-                    )
-                    // bundle: .from(description: localizable.bundle)
-                    LabeledExprSyntax(
-                        label: "bundle",
-                        expression: FunctionCallExprSyntax(
-                            calledExpression: MemberAccessExprSyntax(
-                                name: "from"
-                            ),
-                            leftParen: .leftParenToken(),
-                            rightParen: .rightParenToken()
-                        ) {
-                            LabeledExprSyntax(
-                                label: "description",
-                                expression: MemberAccessExprSyntax(
-                                    base: DeclReferenceExprSyntax(baseName: variableToken),
-                                    name: "bundle"
-                                )
-                            )
-                        }
-                    )
-                    // locale: locale ?? localizable.locale
-                    LabeledExprSyntax(
-                        label: "locale",
-                        expression: InfixOperatorExprSyntax(
-                            leftOperand: DeclReferenceExprSyntax(baseName: "locale"),
-                            operator: BinaryOperatorExprSyntax(operator: .binaryOperator("??")),
-                            rightOperand: MemberAccessExprSyntax(
-                                base: DeclReferenceExprSyntax(baseName: variableToken),
-                                name: "locale"
-                            )
-                        )
-                    )
-                }
-                .multiline()
-            }
-        }
-        .spacingMembers()
-    }
-
-    func generateStringsTableExtension() -> ExtensionDeclSyntax {
-        ExtensionDeclSyntax(
-            availability: .wwdc2021,
-            extendedType: localTableMemberType
+            ],
+            modifiers: [
+                DeclModifierSyntax(name: accessLevel.token)
+            ],
+            name: namespaceToken
         ) {
             for resource in resources {
                 resource.declaration(
                     tableName: tableName,
-                    variableToken: variableToken,
                     accessLevel: accessLevel.token,
-                    isLocalizedStringResource: false
+                    resolveToken: resolveFuncToken
                 )
             }
         }
-        .spacingMembers()
     }
 
     func generateBundleDescriptionExtension() -> ExtensionDeclSyntax {
         ExtensionDeclSyntax(
-            availability: .wwdc2021,
-            accessLevel: .private,
-            extendedType: localBundleDescriptionMemberType
+            availability: .wwdc2022,
+            extendedType: localizedStringResourceBundleDescriptionMemberType
         ) {
             IfConfigDeclSyntax(
                 prefixOperator: "!",
@@ -341,31 +92,38 @@ public struct StringGenerator {
 
             VariableDeclSyntax(
                 modifiers: [
-                    DeclModifierSyntax(name: .keyword(.static))
+                    DeclModifierSyntax(name: .keyword(.fileprivate)),
+                    DeclModifierSyntax(name: .keyword(.static)),
                 ],
-                bindingSpecifier: .keyword(.var),
+                bindingSpecifier: .keyword(.let),
                 bindings: [
                     PatternBindingSyntax(
                         pattern: IdentifierPatternSyntax(identifier: "current"),
-                        typeAnnotation: TypeAnnotationSyntax(type: IdentifierTypeSyntax(name: "Self")),
-                        accessorBlock: AccessorBlockSyntax(
-                            accessors: .getter([
-                                CodeBlockItemSyntax(
-                                    item: .decl(
-                                        DeclSyntax(
-                                            IfConfigDeclSyntax(
-                                                reference: "SWIFT_PACKAGE",
-                                                elements: .statements([
-                                                    CodeBlockItemSyntax(item: .expr(ExprSyntax(".atURL(Bundle.module.bundleURL)")))
-                                                ]),
-                                                else: .statements([
-                                                    CodeBlockItemSyntax(item: .expr(ExprSyntax(".forClass(BundleLocator.self)")))
-                                                ])
+                        typeAnnotation: TypeAnnotationSyntax(type: IdentifierTypeSyntax(name: .keyword(.Self))),
+                        initializer: InitializerClauseSyntax(
+                            equal: .equalToken(),
+                            value: FunctionCallExprSyntax(
+                                calledExpression: ClosureExprSyntax(statements: [
+                                    CodeBlockItemSyntax(
+                                        item: .decl(
+                                            DeclSyntax(
+                                                IfConfigDeclSyntax(
+                                                    reference: "SWIFT_PACKAGE",
+                                                    elements: .statements([
+                                                        CodeBlockItemSyntax(item: .expr(ExprSyntax(".atURL(Bundle.module.bundleURL)")))
+                                                    ]),
+                                                    else: .statements([
+                                                        CodeBlockItemSyntax(item: .expr(ExprSyntax(".forClass(BundleLocator.self)")))
+                                                    ])
+                                                )
                                             )
                                         )
                                     )
-                                )
-                            ])
+                                ]),
+                                leftParen: .leftParenToken(),
+                                arguments: LabeledExprListSyntax {},
+                                rightParen: .rightParenToken()
+                            )
                         )
                     )
                 ]
@@ -374,432 +132,41 @@ public struct StringGenerator {
         .spacingMembers()
     }
 
-    func generateBundleExtension() -> ExtensionDeclSyntax {
-        ExtensionDeclSyntax(
-            availability: .wwdc2021,
+    func generateResolveExtension() -> ExtensionDeclSyntax {
+        let paramName = TokenSyntax("resource")
+        return ExtensionDeclSyntax(
+            availability: .wwdc2022,
             accessLevel: .private,
-            extendedType: .identifier(.Bundle)
+            extendedType: IdentifierTypeSyntax(name: .identifier(tableName))
         ) {
             FunctionDeclSyntax(
                 modifiers: [
-                    DeclModifierSyntax(name: .keyword(.static))
+                    DeclModifierSyntax(name: .keyword(.static)),
                 ],
-                name: "from",
-                signature: FunctionSignatureSyntax(
-                    parameterClause: FunctionParameterClauseSyntax {
-                        FunctionParameterSyntax(
-                            firstName: "description",
-                            type: localBundleDescriptionMemberType
-                        )
-                    },
-                    returnClause: ReturnClauseSyntax(
-                        type: OptionalTypeSyntax(
-                            wrappedType: .identifier(.Bundle)
-                        )
-                    )
-                )
-            ) {
-                SwitchExprSyntax(
-                    subject: DeclReferenceExprSyntax(baseName: "description")
-                ) {
-                    // case .main:
-                    SwitchCaseSyntax(
-                        label: .case(
-                            SwitchCaseLabelSyntax(
-                                caseItems: SwitchCaseItemListSyntax {
-                                    SwitchCaseItemSyntax(
-                                        pattern: ExpressionPatternSyntax(
-                                            expression: MemberAccessExprSyntax(
-                                                declName: DeclReferenceExprSyntax(baseName: "main")
-                                            )
-                                        )
-                                    )
-                                }
-                            )
-                        ),
-                        statements: CodeBlockItemListSyntax {
-                            // Bundle.main
-                            MemberAccessExprSyntax(
-                                base: DeclReferenceExprSyntax(baseName: .type(.Bundle)),
-                                name: "main"
-                            )
-                        }
-                    )
-
-                    // case .atURL(let url):
-                    SwitchCaseSyntax(
-                        label: .case(
-                            SwitchCaseLabelSyntax(
-                                caseItems: SwitchCaseItemListSyntax {
-                                    SwitchCaseItemSyntax(
-                                        pattern: ExpressionPatternSyntax(
-                                            expression: FunctionCallExprSyntax(
-                                                calledExpression: MemberAccessExprSyntax(
-                                                    declName: DeclReferenceExprSyntax(baseName: "atURL")
-                                                ),
-                                                leftParen: .leftParenToken(),
-                                                rightParen: .rightParenToken()
-                                            ) {
-                                                LabeledExprSyntax(
-                                                    expression: PatternExprSyntax(
-                                                        pattern: ValueBindingPatternSyntax(
-                                                            bindingSpecifier: .keyword(.let),
-                                                            pattern: IdentifierPatternSyntax(
-                                                                identifier: "url"
-                                                            )
-                                                        )
-                                                    )
-                                                )
-                                            }
-                                        )
-                                    )
-                                }
-                            )
-                        ),
-                        statements: CodeBlockItemListSyntax {
-                            // Bundle(url: url)
-                            FunctionCallExprSyntax(
-                                calledExpression: DeclReferenceExprSyntax(
-                                    baseName: .type(.Bundle)
-                                ),
-                                leftParen: .leftParenToken(),
-                                rightParen: .rightParenToken()
-                            ) {
-                                LabeledExprSyntax(
-                                    label: "url",
-                                    expression: DeclReferenceExprSyntax(
-                                        baseName: "url"
-                                    )
-                                )
-                            }
-                        }
-                    )
-
-                    // case .forClass(let anyClass):
-                    SwitchCaseSyntax(
-                        label: .case(
-                            SwitchCaseLabelSyntax(
-                                caseItems: SwitchCaseItemListSyntax {
-                                    SwitchCaseItemSyntax(
-                                        pattern: ExpressionPatternSyntax(
-                                            expression: FunctionCallExprSyntax(
-                                                calledExpression: MemberAccessExprSyntax(
-                                                    declName: DeclReferenceExprSyntax(baseName: "forClass")
-                                                ),
-                                                leftParen: .leftParenToken(),
-                                                rightParen: .rightParenToken()
-                                            ) {
-                                                LabeledExprSyntax(
-                                                    expression: PatternExprSyntax(
-                                                        pattern: ValueBindingPatternSyntax(
-                                                            bindingSpecifier: .keyword(.let),
-                                                            pattern: IdentifierPatternSyntax(
-                                                                identifier: "anyClass"
-                                                            )
-                                                        )
-                                                    )
-                                                )
-                                            }
-                                        )
-                                    )
-                                }
-                            )
-                        ),
-                        statements: CodeBlockItemListSyntax {
-                            // Bundle(for: anyClass)
-                            FunctionCallExprSyntax(
-                                calledExpression: DeclReferenceExprSyntax(
-                                    baseName: .type(.Bundle)
-                                ),
-                                leftParen: .leftParenToken(),
-                                rightParen: .rightParenToken()
-                            ) {
-                                LabeledExprSyntax(
-                                    label: "for",
-                                    expression: DeclReferenceExprSyntax(
-                                        baseName: "anyClass"
-                                    )
-                                )
-                            }
-                        }
-                    )
-                }
-            }
-        }
-        .spacingMembers()
-    }
-
-    func generateFoundationBundleDescriptionExtension() -> ExtensionDeclSyntax {
-        ExtensionDeclSyntax(
-            availability: .wwdc2022,
-            accessLevel: .private,
-            extendedType: localizedStringResourceBundleDescriptionMemberType
-        ) {
-            FunctionDeclSyntax(
-                modifiers: [
-                    DeclModifierSyntax(name: .keyword(.static))
-                ],
-                name: "from",
-                signature: FunctionSignatureSyntax(
-                    parameterClause: FunctionParameterClauseSyntax {
-                        FunctionParameterSyntax(
-                            firstName: "description",
-                            type: localBundleDescriptionMemberType
-                        )
-                    },
-                    returnClause: ReturnClauseSyntax(
-                        type: IdentifierTypeSyntax(name: .keyword(.Self))
-                    )
-                )
-            ) {
-                SwitchExprSyntax(
-                    subject: DeclReferenceExprSyntax(baseName: "description")
-                ) {
-                    // case .main:
-                    SwitchCaseSyntax(
-                        label: .case(
-                            SwitchCaseLabelSyntax(
-                                caseItems: SwitchCaseItemListSyntax {
-                                    SwitchCaseItemSyntax(
-                                        pattern: ExpressionPatternSyntax(
-                                            expression: MemberAccessExprSyntax(
-                                                declName: DeclReferenceExprSyntax(baseName: "main")
-                                            )
-                                        )
-                                    )
-                                }
-                            )
-                        ),
-                        statements: CodeBlockItemListSyntax {
-                            // .main
-                            MemberAccessExprSyntax(
-                                name: "main"
-                            )
-                        }
-                    )
-
-                    // case .atURL(let url):
-                    SwitchCaseSyntax(
-                        label: .case(
-                            SwitchCaseLabelSyntax(
-                                caseItems: SwitchCaseItemListSyntax {
-                                    SwitchCaseItemSyntax(
-                                        pattern: ExpressionPatternSyntax(
-                                            expression: FunctionCallExprSyntax(
-                                                calledExpression: MemberAccessExprSyntax(
-                                                    declName: DeclReferenceExprSyntax(baseName: "atURL")
-                                                ),
-                                                leftParen: .leftParenToken(),
-                                                rightParen: .rightParenToken()
-                                            ) {
-                                                LabeledExprSyntax(
-                                                    expression: PatternExprSyntax(
-                                                        pattern: ValueBindingPatternSyntax(
-                                                            bindingSpecifier: .keyword(.let),
-                                                            pattern: IdentifierPatternSyntax(
-                                                                identifier: "url"
-                                                            )
-                                                        )
-                                                    )
-                                                )
-                                            }
-                                        )
-                                    )
-                                }
-                            )
-                        ),
-                        statements: CodeBlockItemListSyntax {
-                            // .atURL(url)
-                            FunctionCallExprSyntax(
-                                calledExpression: MemberAccessExprSyntax(
-                                    declName: DeclReferenceExprSyntax(
-                                        baseName: "atURL"
-                                    )
-                                ),
-                                leftParen: .leftParenToken(),
-                                rightParen: .rightParenToken()
-                            ) {
-                                LabeledExprSyntax(
-                                    expression: DeclReferenceExprSyntax(
-                                        baseName: "url"
-                                    )
-                                )
-                            }
-                        }
-                    )
-
-                    // case .forClass(let anyClass):
-                    SwitchCaseSyntax(
-                        label: .case(
-                            SwitchCaseLabelSyntax(
-                                caseItems: SwitchCaseItemListSyntax {
-                                    SwitchCaseItemSyntax(
-                                        pattern: ExpressionPatternSyntax(
-                                            expression: FunctionCallExprSyntax(
-                                                calledExpression: MemberAccessExprSyntax(
-                                                    declName: DeclReferenceExprSyntax(baseName: "forClass")
-                                                ),
-                                                leftParen: .leftParenToken(),
-                                                rightParen: .rightParenToken()
-                                            ) {
-                                                LabeledExprSyntax(
-                                                    expression: PatternExprSyntax(
-                                                        pattern: ValueBindingPatternSyntax(
-                                                            bindingSpecifier: .keyword(.let),
-                                                            pattern: IdentifierPatternSyntax(
-                                                                identifier: "anyClass"
-                                                            )
-                                                        )
-                                                    )
-                                                )
-                                            }
-                                        )
-                                    )
-                                }
-                            )
-                        ),
-                        statements: CodeBlockItemListSyntax {
-                            // .forClass(anyClass)
-                            FunctionCallExprSyntax(
-                                calledExpression: MemberAccessExprSyntax(
-                                    declName: DeclReferenceExprSyntax(
-                                        baseName: "forClass"
-                                    )
-                                ),
-                                leftParen: .leftParenToken(),
-                                rightParen: .rightParenToken()
-                            ) {
-                                LabeledExprSyntax(
-                                    expression: DeclReferenceExprSyntax(
-                                        baseName: "anyClass"
-                                    )
-                                )
-                            }
-                        }
-                    )
-                }
-            }
-        }
-        .spacingMembers()
-    }
-
-    func generateLocalizedStringResourceExtension() -> ExtensionDeclSyntax {
-        ExtensionDeclSyntax(
-            availability: .wwdc2022,
-            extendedType: .identifier(.LocalizedStringResource)
-        ) {
-            // Table struct
-            StructDeclSyntax(
-                leadingTrivia: typeDocumentation,
-                modifiers: [
-                    DeclModifierSyntax(name: accessLevel.token)
-                ],
-                name: structToken
-            ) {
-                for resource in resources {
-                    resource.declaration(
-                        tableName: tableName,
-                        variableToken: variableToken,
-                        accessLevel: accessLevel.token,
-                        isLocalizedStringResource: true
-                    )
-                }
-            }
-            .spacingMembers()
-
-            // Init
-            InitializerDeclSyntax(
-                modifiers: [
-                    DeclModifierSyntax(name: .keyword(.private))
-                ],
+                name: resolveFuncToken,
                 signature: FunctionSignatureSyntax(
                     parameterClause: FunctionParameterClauseSyntax(
-                        leftParen: .leftParenToken(),
-                        rightParen: .rightParenToken()
-                    ) {
-                        FunctionParameterSyntax(
-                            firstName: variableToken,
-                            type: localTableMemberType
-                        )
-                    }
-                )
-            ) {
-                FunctionCallExprSyntax(
-                    callee: MemberAccessExprSyntax(
-                        base: DeclReferenceExprSyntax(baseName: .keyword(.`self`)),
-                        name: .keyword(.`init`)
-                    )
-                ) {
-                    LabeledExprSyntax(
-                        label: nil,
-                        expression: MemberAccessExprSyntax(
-                            base: DeclReferenceExprSyntax(baseName: variableToken),
-                            declName: DeclReferenceExprSyntax(baseName: "key")
-                        )
-                    )
-
-                    LabeledExprSyntax(
-                        label: "defaultValue",
-                        expression: MemberAccessExprSyntax(
-                            base: DeclReferenceExprSyntax(baseName: variableToken),
-                            declName: DeclReferenceExprSyntax(baseName: "defaultValue")
-                        )
-                    )
-
-                    LabeledExprSyntax(
-                        label: "table",
-                        expression: MemberAccessExprSyntax(
-                            base: DeclReferenceExprSyntax(baseName: variableToken),
-                            declName: DeclReferenceExprSyntax(baseName: "table")
-                        )
-                    )
-
-                    LabeledExprSyntax(
-                        label: "locale",
-                        expression: MemberAccessExprSyntax(
-                            base: DeclReferenceExprSyntax(baseName: variableToken),
-                            declName: DeclReferenceExprSyntax(baseName: "locale")
-                        )
-                    )
-
-                    LabeledExprSyntax(
-                        label: "bundle",
-                        expression: FunctionCallExprSyntax(
-                            calledExpression: MemberAccessExprSyntax(
-                                declName: DeclReferenceExprSyntax(baseName: "from")
-                            ),
-                            leftParen: .leftParenToken(),
-                            rightParen: .rightParenToken()
-                        ) {
-                            LabeledExprSyntax(
-                                label: "description",
-                                expression: MemberAccessExprSyntax(
-                                    base: DeclReferenceExprSyntax(baseName: variableToken),
-                                    declName: DeclReferenceExprSyntax(baseName: "bundle")
-                                )
+                        parameters: FunctionParameterListSyntax {
+                            FunctionParameterSyntax(
+                                firstName: .wildcardToken(),
+                                secondName: paramName,
+                                type: .identifier(.LocalizedStringResource)
                             )
                         }
-                    )
-                }
-                .multiline()
-            }
-
-            // Accessor
-            // internal static let localizable = Localizable()
-            VariableDeclSyntax(
-                modifiers: [
-                    DeclModifierSyntax(name: accessLevel.token),
-                    DeclModifierSyntax(name: .keyword(.static))
-                ],
-                .let,
-                name: PatternSyntax(IdentifierPatternSyntax(identifier: variableToken)),
-                initializer: InitializerClauseSyntax(
-                    value: FunctionCallExprSyntax(
-                        calledExpression: DeclReferenceExprSyntax(baseName: structToken),
-                        leftParen: .leftParenToken(),
-                        arguments: [],
-                        rightParen: .rightParenToken()
-                    )
+                    ),
+                    returnClause: ReturnClauseSyntax(type: .identifier(.String))
+                ),
+                body: CodeBlockSyntax(
+                    statements: [
+                        CodeBlockItemSyntax(
+                            leadingTrivia: .space,
+                            item: .decl(
+                                DeclSyntax(
+                                    " String(localized: resource)"
+                                )
+                            )
+                        )
+                    ]
                 )
             )
         }
@@ -808,46 +175,8 @@ public struct StringGenerator {
 
     // MARK: - Helpers
 
-    var typeDocumentation: Trivia {
-        let exampleResource = resources.first(where: { $0.arguments.isEmpty })
-        let exampleId = exampleResource?.identifier ?? "foo"
-        let exampleValue = exampleResource?.defaultValue.first?.content ?? "bar"
-        let exampleAccessor = ".\(variableToken.text).\(exampleId)"
-
-        return Trivia(docComment: """
-        Constant values for the \(tableName) Strings Catalog
-
-        ```swift
-        // Accessing the localized value directly
-        let value = String(localized: \(exampleAccessor))
-        value // \"\(exampleValue.replacingOccurrences(of: "\n", with: "\\n"))\"
-
-        // Working with SwiftUI
-        Text(\(exampleAccessor))
-        ```
-
-        - Note: Using ``LocalizedStringResource.\(tableName)`` requires iOS 16/macOS 13 or later. See ``String.\(tableName)`` for an iOS 15/macOS 12 compatible API.
-        """)
-    }
-
-    var customTypeDocumentation: Trivia {
-        let exampleResource = resources.first(where: { $0.arguments.isEmpty })
-        let exampleId = exampleResource?.identifier ?? "foo"
-        let exampleValue = exampleResource?.defaultValue.first?.content ?? "bar"
-
-        return Trivia(docComment: """
-        Constant values for the \(tableName) Strings Catalog
-
-        ```swift
-        // Accessing the localized value directly
-        let value = String(\(variableToken.text): .\(exampleId))
-        value // \"\(exampleValue.replacingOccurrences(of: "\n", with: "\\n"))\"
-        ```
-        """)
-    }
-
     // Localizable
-    var structToken: TokenSyntax {
+    var namespaceToken: TokenSyntax {
         .identifier(SwiftIdentifier.identifier(from: tableName))
     }
 
@@ -855,7 +184,7 @@ public struct StringGenerator {
     var localTableMemberType: MemberTypeSyntax {
         MemberTypeSyntax(
             baseType: .identifier(.String),
-            name: structToken
+            name: namespaceToken
         )
     }
 
@@ -884,6 +213,10 @@ public struct StringGenerator {
     var bundleToken: TokenSyntax {
         .identifier("bundleDescription")
     }
+
+    var resolveFuncToken: TokenSyntax {
+        .identifier("resolve")
+    }
 }
 
 extension StringGenerator.AccessLevel {
@@ -899,36 +232,37 @@ extension StringGenerator.AccessLevel {
 extension Resource {
     func declaration(
         tableName: String,
-        variableToken: TokenSyntax,
         accessLevel: TokenSyntax,
-        isLocalizedStringResource: Bool
+        resolveToken: TokenSyntax
     ) -> DeclSyntaxProtocol {
-        var modifiers = [DeclModifierSyntax(name: accessLevel)]
-        if !isLocalizedStringResource {
-            modifiers.append(DeclModifierSyntax(name: .keyword(.static)))
-        }
-
-        let type: IdentifierTypeSyntax = if isLocalizedStringResource {
-            .identifier(.LocalizedStringResource)
-        } else {
-            IdentifierTypeSyntax(name: .keyword(.Self))
-        }
+        let modifiers = [
+            DeclModifierSyntax(name: accessLevel),
+            DeclModifierSyntax(name: .keyword(.static)),
+        ]
 
         return if arguments.isEmpty {
             VariableDeclSyntax(
                 leadingTrivia: leadingTrivia,
                 modifiers: .init(modifiers),
-                bindingSpecifier: .keyword(.var),
+                bindingSpecifier: .keyword(.let),
                 bindings: [
                     PatternBindingSyntax(
                         pattern: IdentifierPatternSyntax(identifier: name),
-                        typeAnnotation: TypeAnnotationSyntax(type: type),
-                        accessorBlock: AccessorBlockSyntax(
-                            accessors: .getter(statements(
-                                table: tableName,
-                                variableToken: variableToken,
-                                isLocalizedStringResource: isLocalizedStringResource
-                            ))
+                        initializer: InitializerClauseSyntax(
+                            equal: .equalToken(),
+                            value: FunctionCallExprSyntax(
+                                calledExpression: DeclReferenceExprSyntax(baseName: resolveToken),
+                                leftParen: .leftParenToken(),
+                                arguments: LabeledExprListSyntax {
+                                    LabeledExprSyntax(
+                                        leadingTrivia: .newline,
+                                        label: nil,
+                                        expression: statements(table: tableName),
+                                        trailingTrivia: .newline
+                                    )
+                                },
+                                rightParen: .rightParenToken()
+                            )
                         )
                     )
                 ]
@@ -944,13 +278,29 @@ extension Resource {
                             argument.parameter
                         }
                     }.commaSeparated(),
-                    returnClause: ReturnClauseSyntax(type: type)
+                    returnClause: ReturnClauseSyntax(type: .identifier(.String))
                 ),
-                body: CodeBlockSyntax(statements: statements(
-                    table: tableName,
-                    variableToken: variableToken,
-                    isLocalizedStringResource: isLocalizedStringResource
-                ))
+                body: CodeBlockSyntax(statements: [
+                    CodeBlockItemSyntax(
+                        item: .expr(
+                            ExprSyntax(
+                                FunctionCallExprSyntax(
+                                    calledExpression: DeclReferenceExprSyntax(baseName: resolveToken),
+                                    leftParen: .leftParenToken(),
+                                    arguments: LabeledExprListSyntax {
+                                        LabeledExprSyntax(
+                                            leadingTrivia: .newline,
+                                            label: nil,
+                                            expression: statements(table: tableName),
+                                            trailingTrivia: .newline
+                                        )
+                                    },
+                                    rightParen: .rightParenToken()
+                                )
+                            )
+                        )
+                    )
+                ])
             )
         }
     }
@@ -973,69 +323,37 @@ extension Resource {
     }
 
     func statements(
-        table: String,
-        variableToken: TokenSyntax,
-        isLocalizedStringResource: Bool
-    ) -> CodeBlockItemListSyntax {
-        CodeBlockItemListSyntax {
-            if !isLocalizedStringResource {
-                FunctionCallExprSyntax(
-                    callee: DeclReferenceExprSyntax(
-                        baseName: .keyword(.Self)
-                    )
-                ) {
-                    LabeledExprSyntax(label: "key", expression: keyExpr)
+        table: String
+    ) -> FunctionCallExprSyntax {
+        FunctionCallExprSyntax(
+            callee: DeclReferenceExprSyntax(
+                baseName: .type(.LocalizedStringResource)
+            )
+        ) {
+            LabeledExprSyntax(expression: keyExpr)
 
-                    LabeledExprSyntax(label: "defaultValue", expression: defaultValueExpr)
+            LabeledExprSyntax(label: "defaultValue", expression: defaultValueExpr)
 
-                    LabeledExprSyntax(
-                        label: "table",
-                        expression: StringLiteralExprSyntax(content: table)
-                    )
+            LabeledExprSyntax(
+                label: "table",
+                expression: StringLiteralExprSyntax(content: table)
+            )
 
-                    LabeledExprSyntax(
-                        label: "locale",
-                        expression: MemberAccessExprSyntax(
-                            name: .identifier("current")
-                        )
-                    )
+            LabeledExprSyntax(
+                label: "locale",
+                expression: MemberAccessExprSyntax(
+                    name: .identifier("current")
+                )
+            )
 
-                    LabeledExprSyntax(
-                        label: "bundle",
-                        expression: MemberAccessExprSyntax(
-                            name: .identifier("current")
-                        )
-                    )
-                }
-                .multiline()
-            } else {
-                FunctionCallExprSyntax(
-                    callee: DeclReferenceExprSyntax(
-                        baseName: .type(.LocalizedStringResource)
-                    )
-                ) {
-                    LabeledExprSyntax(
-                        label: variableToken.text,
-                        expression: FunctionCallExprSyntax(
-                            calledExpression: MemberAccessExprSyntax(
-                                declName: DeclReferenceExprSyntax(baseName: name)
-                            ),
-                            leftParen: arguments.isEmpty ? nil : .leftParenToken(),
-                            rightParen: arguments.isEmpty ? nil : .rightParenToken()
-                        ) {
-                            for argument in arguments {
-                                LabeledExprSyntax(
-                                    label: argument.label,
-                                    expression: DeclReferenceExprSyntax(
-                                        baseName: .identifier(argument.name)
-                                    )
-                                )
-                            }
-                        }
-                    )
-                }
-            }
+            LabeledExprSyntax(
+                label: "bundle",
+                expression: MemberAccessExprSyntax(
+                    name: .identifier("current")
+                )
+            )
         }
+        .multiline()
     }
 
     var keyExpr: StringLiteralExprSyntax {
