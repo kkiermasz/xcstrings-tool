@@ -32,12 +32,15 @@ public struct StringGenerator {
     }
 
     func generate() -> SourceFileSyntax {
-        SourceFileSyntax {
-            generateImports()
-            generateStringsTableExtension()
-            generateBundleDescriptionExtension()
-            generateResolveExtension()
-        }
+        SourceFileSyntax(
+            statementsBuilder: {
+                generateImports()
+                generateStringsTableExtension()
+                generateBundleDescriptionExtension()
+                generateResolveExtension()
+            },
+            trailingTrivia: .newline
+        )
         .spacingStatements()
     }
 
@@ -53,7 +56,6 @@ public struct StringGenerator {
 
     func generateStringsTableExtension() -> EnumDeclSyntax {
         EnumDeclSyntax(
-            leadingTrivia: typeDocumentation,
             attributes: [
                 .attribute(
                     AttributeSyntax(availability: .wwdc2022)
@@ -68,7 +70,7 @@ public struct StringGenerator {
             for resource in resources {
                 resource.declaration(
                     tableName: tableName,
-                    accessLevel: accessLevel.token, 
+                    accessLevel: accessLevel.token,
                     resolveToken: resolveFuncToken
                 )
             }
@@ -102,7 +104,6 @@ public struct StringGenerator {
                             equal: .equalToken(),
                             value: FunctionCallExprSyntax(
                                 calledExpression: ClosureExprSyntax(statements: [
-
                                     CodeBlockItemSyntax(
                                         item: .decl(
                                             DeclSyntax(
@@ -145,25 +146,23 @@ public struct StringGenerator {
                 name: resolveFuncToken,
                 signature: FunctionSignatureSyntax(
                     parameterClause: FunctionParameterClauseSyntax(
-                        leftParen: .leftParenToken(),
                         parameters: FunctionParameterListSyntax {
                             FunctionParameterSyntax(
                                 firstName: .wildcardToken(),
                                 secondName: paramName,
                                 type: .identifier(.LocalizedStringResource)
                             )
-                        },
-                        rightParen: .rightParenToken()
+                        }
                     ),
                     returnClause: ReturnClauseSyntax(type: .identifier(.String))
                 ),
                 body: CodeBlockSyntax(
                     statements: [
                         CodeBlockItemSyntax(
-                            leadingTrivia: .newline,
+                            leadingTrivia: .space,
                             item: .decl(
                                 DeclSyntax(
-                                    "String(localized: resource)"
+                                    " String(localized: resource)"
                                 )
                             )
                         )
@@ -175,44 +174,6 @@ public struct StringGenerator {
     }
 
     // MARK: - Helpers
-
-    var typeDocumentation: Trivia {
-        let exampleResource = resources.first(where: { $0.arguments.isEmpty })
-        let exampleId = exampleResource?.identifier ?? "foo"
-        let exampleValue = exampleResource?.defaultValue.first?.content ?? "bar"
-        let exampleAccessor = ".\(variableToken.text).\(exampleId)"
-
-        return Trivia(docComment: """
-        Constant values for the \(tableName) Strings Catalog
-
-        ```swift
-        // Accessing the localized value directly
-        let value = String(localized: \(exampleAccessor))
-        value // \"\(exampleValue.replacingOccurrences(of: "\n", with: "\\n"))\"
-
-        // Working with SwiftUI
-        Text(\(exampleAccessor))
-        ```
-
-        - Note: Using ``LocalizedStringResource.\(tableName)`` requires iOS 16/macOS 13 or later. See ``String.\(tableName)`` for an iOS 15/macOS 12 compatible API.
-        """)
-    }
-
-    var customTypeDocumentation: Trivia {
-        let exampleResource = resources.first(where: { $0.arguments.isEmpty })
-        let exampleId = exampleResource?.identifier ?? "foo"
-        let exampleValue = exampleResource?.defaultValue.first?.content ?? "bar"
-
-        return Trivia(docComment: """
-        Constant values for the \(tableName) Strings Catalog
-
-        ```swift
-        // Accessing the localized value directly
-        let value = String(\(variableToken.text): .\(exampleId))
-        value // \"\(exampleValue.replacingOccurrences(of: "\n", with: "\\n"))\"
-        ```
-        """)
-    }
 
     // Localizable
     var namespaceToken: TokenSyntax {
@@ -320,25 +281,25 @@ extension Resource {
                     returnClause: ReturnClauseSyntax(type: .identifier(.String))
                 ),
                 body: CodeBlockSyntax(statements: [
-                    
                     CodeBlockItemSyntax(
-                        item: .expr(ExprSyntax(
-                            FunctionCallExprSyntax(
-                                calledExpression: DeclReferenceExprSyntax(baseName: resolveToken),
-                                leftParen: .leftParenToken(),
-                                arguments: LabeledExprListSyntax {
-                                    LabeledExprSyntax(
-                                        leadingTrivia: .newline,
-                                        label: nil,
-                                        expression: statements(table: tableName),
-                                        trailingTrivia: .newline
-                                    )
-                                },
-                                rightParen: .rightParenToken()
+                        item: .expr(
+                            ExprSyntax(
+                                FunctionCallExprSyntax(
+                                    calledExpression: DeclReferenceExprSyntax(baseName: resolveToken),
+                                    leftParen: .leftParenToken(),
+                                    arguments: LabeledExprListSyntax {
+                                        LabeledExprSyntax(
+                                            leadingTrivia: .newline,
+                                            label: nil,
+                                            expression: statements(table: tableName),
+                                            trailingTrivia: .newline
+                                        )
+                                    },
+                                    rightParen: .rightParenToken()
+                                )
                             )
-                            )
-                    )
                         )
+                    )
                 ])
             )
         }

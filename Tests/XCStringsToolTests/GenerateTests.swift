@@ -99,7 +99,7 @@ private extension GenerateTests {
         // Cleanup any temporary output
         addTeardownBlock {
             if fileManager.fileExists(atPath: outputURL.path()) {
-//                try? fileManager.removeItem(at: outputURL)
+                try? fileManager.removeItem(at: outputURL)
             }
         }
 
